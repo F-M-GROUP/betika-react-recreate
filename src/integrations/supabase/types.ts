@@ -14,7 +14,155 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookmakers: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          away_team: string
+          commence_time: string
+          completed: boolean | null
+          created_at: string | null
+          home_team: string
+          id: string
+          sport_key: string
+          sport_title: string
+          updated_at: string | null
+        }
+        Insert: {
+          away_team: string
+          commence_time: string
+          completed?: boolean | null
+          created_at?: string | null
+          home_team: string
+          id: string
+          sport_key: string
+          sport_title: string
+          updated_at?: string | null
+        }
+        Update: {
+          away_team?: string
+          commence_time?: string
+          completed?: boolean | null
+          created_at?: string | null
+          home_team?: string
+          id?: string
+          sport_key?: string
+          sport_title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_sport_key_fkey"
+            columns: ["sport_key"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      odds: {
+        Row: {
+          bookmaker_key: string
+          created_at: string | null
+          event_id: string
+          id: string
+          last_update: string
+          market_key: string
+          outcomes: Json
+          updated_at: string | null
+        }
+        Insert: {
+          bookmaker_key: string
+          created_at?: string | null
+          event_id: string
+          id?: string
+          last_update: string
+          market_key: string
+          outcomes: Json
+          updated_at?: string | null
+        }
+        Update: {
+          bookmaker_key?: string
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          last_update?: string
+          market_key?: string
+          outcomes?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odds_bookmaker_key_fkey"
+            columns: ["bookmaker_key"]
+            isOneToOne: false
+            referencedRelation: "bookmakers"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "odds_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sports: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          group_name: string
+          has_outrights: boolean | null
+          id: string
+          key: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          group_name: string
+          has_outrights?: boolean | null
+          id?: string
+          key: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          group_name?: string
+          has_outrights?: boolean | null
+          id?: string
+          key?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

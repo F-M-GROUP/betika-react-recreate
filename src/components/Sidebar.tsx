@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       >
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-betika-gray">
-            <h2 className="text-lg font-semibold text-betika-yellow">Sports Betting</h2>
+            <h2 className="text-lg font-semibold text-betika-yellow">BETWISE</h2>
           </div>
           
           <nav className="flex-1 p-4 space-y-2">

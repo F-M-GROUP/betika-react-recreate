@@ -1,88 +1,50 @@
 
-import React, { useState } from 'react';
-import { Search, Filter, TrendingUp } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Filter, TrendingUp, Loader2, RefreshCw } from 'lucide-react';
 import MatchCard from '../components/MatchCard';
-
-interface Match {
-  id: string;
-  homeTeam: string;
-  awayTeam: string;
-  league: string;
-  time: string;
-  status: 'upcoming' | 'live' | 'finished';
-  odds: {
-    home: number;
-    draw?: number;
-    away: number;
-  };
-  isPopular?: boolean;
-}
-
-const mockMatches: Match[] = [
-  {
-    id: '1',
-    homeTeam: 'Manchester United',
-    awayTeam: 'Liverpool',
-    league: 'Premier League',
-    time: '18:30',
-    status: 'upcoming',
-    odds: { home: 2.45, draw: 3.20, away: 2.90 },
-    isPopular: true
-  },
-  {
-    id: '2',
-    homeTeam: 'Real Madrid',
-    awayTeam: 'Barcelona',
-    league: 'La Liga',
-    time: 'LIVE 67\'',
-    status: 'live',
-    odds: { home: 1.85, draw: 3.50, away: 4.20 },
-    isPopular: true
-  },
-  {
-    id: '3',
-    homeTeam: 'Bayern Munich',
-    awayTeam: 'Borussia Dortmund',
-    league: 'Bundesliga',
-    time: '20:00',
-    status: 'upcoming',
-    odds: { home: 1.70, draw: 3.80, away: 4.50 }
-  },
-  {
-    id: '4',
-    homeTeam: 'Chelsea',
-    awayTeam: 'Arsenal',
-    league: 'Premier League',
-    time: '16:30',
-    status: 'upcoming',
-    odds: { home: 2.10, draw: 3.30, away: 3.40 }
-  },
-  {
-    id: '5',
-    homeTeam: 'PSG',
-    awayTeam: 'Marseille',
-    league: 'Ligue 1',
-    time: 'LIVE 23\'',
-    status: 'live',
-    odds: { home: 1.55, draw: 4.20, away: 5.80 }
-  },
-  {
-    id: '6',
-    homeTeam: 'Juventus',
-    awayTeam: 'AC Milan',
-    league: 'Serie A',
-    time: '21:45',
-    status: 'upcoming',
-    odds: { home: 2.25, draw: 3.10, away: 3.20 }
-  }
-];
+import { useMatches } from '../hooks/useMatches';
+import { useSyncSports, useFetchOdds } from '../hooks/useSyncOdds';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Home: React.FC = () => {
   const [selectedBets, setSelectedBets] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLeague, setSelectedLeague] = useState('All');
 
-  const leagues = ['All', 'Premier League', 'La Liga', 'Bundesliga', 'Serie A', 'Ligue 1'];
+  const { data: matches = [], isLoading, error } = useMatches();
+  const syncSports = useSyncSports();
+  const fetchOdds = useFetchOdds();
+  const queryClient = useQueryClient();
+
+  // Auto-sync on first load
+  useEffect(() => {
+    const hasRun = sessionStorage.getItem('odds-synced');
+    if (!hasRun) {
+      syncSports.mutate(undefined, {
+        onSuccess: () => {
+          fetchOdds.mutate(undefined, {
+            onSuccess: () => {
+              sessionStorage.setItem('odds-synced', 'true');
+              queryClient.invalidateQueries({ queryKey: ['matches'] });
+            }
+          });
+        }
+      });
+    }
+  }, []);
+
+  const handleRefresh = () => {
+    fetchOdds.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['matches'] });
+      }
+    });
+  };
+
+  const leagues = useMemo(() => {
+    const uniqueLeagues = new Set(matches.map(m => m.league));
+    return ['All', ...Array.from(uniqueLeagues).sort()];
+  }, [matches]);
 
   const handleSelectBet = (bet: any) => {
     setSelectedBets(prev => {
@@ -99,7 +61,7 @@ const Home: React.FC = () => {
     });
   };
 
-  const filteredMatches = mockMatches.filter(match => {
+  const filteredMatches = matches.filter(match => {
     const matchesSearch = searchTerm === '' || 
       match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
       match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -119,13 +81,13 @@ const Home: React.FC = () => {
       <div className="bg-gradient-to-r from-betika-dark to-betika-darkHover border-b border-betika-gray">
         <div className="p-6">
           <div className="max-w-4xl">
-            <h1 className="text-3xl font-bold text-white mb-2">Sports Betting</h1>
-            <p className="text-gray-300 mb-6">Place your bets on the best odds in the market</p>
+            <h1 className="text-3xl font-bold text-white mb-2">BETWISE</h1>
+            <p className="text-gray-300 mb-6">Smart betting with the best odds from multiple bookmakers</p>
             
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-betika-gray rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-betika-yellow">{mockMatches.length}</div>
+                <div className="text-2xl font-bold text-betika-yellow">{matches.length}</div>
                 <div className="text-sm text-gray-300">Live Markets</div>
               </div>
               <div className="bg-betika-gray rounded-lg p-4 text-center">
@@ -170,13 +132,37 @@ const Home: React.FC = () => {
                 <option key={league} value={league}>{league}</option>
               ))}
             </select>
+            <button
+              onClick={handleRefresh}
+              disabled={fetchOdds.isPending}
+              className="p-3 bg-betika-yellow hover:bg-betika-yellowHover text-betika-dark rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh odds"
+            >
+              <RefreshCw size={20} className={fetchOdds.isPending ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="p-6">
-        {/* Live Matches */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-betika-yellow" />
+            <span className="ml-3 text-white">Loading matches...</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center py-12">
+            <div className="text-red-400 text-lg">Error loading matches</div>
+            <p className="text-gray-400 mt-2">Please try again later</p>
+          </div>
+        )}
+
+        {!isLoading && !error && (
+          <>
+            {/* Live Matches */}
         {liveMatches.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
@@ -212,11 +198,13 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {filteredMatches.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg">No matches found</div>
-            <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria</p>
-          </div>
+            {filteredMatches.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg">No matches found</div>
+                <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

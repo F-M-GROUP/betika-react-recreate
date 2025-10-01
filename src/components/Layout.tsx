@@ -25,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             <div className="text-2xl font-bold text-betika-yellow">
-              BETIKA
+              BETWISE
             </div>
           </div>
           
